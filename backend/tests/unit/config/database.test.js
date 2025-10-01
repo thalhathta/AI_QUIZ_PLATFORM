@@ -4,13 +4,17 @@ let mockSet;
 let mockConnection;
 let processOnSpy;
 let consoleErrorSpy;
+let originalJestWorkerId;
 
 describe("connectDB", () => {
   beforeEach(() => {
     jest.resetModules();
+    originalJestWorkerId = process.env.JEST_WORKER_ID;
+    delete process.env.JEST_WORKER_ID;
     mockConnection = {
       on: jest.fn(),
       close: jest.fn(),
+      readyState: 1,
     };
     mockConnect = jest.fn().mockResolvedValue(mockConnection);
     mockSet = jest.fn();
@@ -30,6 +34,11 @@ describe("connectDB", () => {
   });
 
   afterEach(() => {
+    if (originalJestWorkerId !== undefined) {
+      process.env.JEST_WORKER_ID = originalJestWorkerId;
+    } else {
+      delete process.env.JEST_WORKER_ID;
+    }
     processOnSpy.mockRestore();
     consoleErrorSpy.mockRestore();
     jest.resetModules();
