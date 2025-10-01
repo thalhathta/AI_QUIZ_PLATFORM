@@ -17,7 +17,6 @@ export async function connectDB() {
     if (NODE_ENV !== "production") {
       // Helpful query logs during dev
       mongoose.set("debug", (collectionName, method, query, doc) => {
-        // eslint-disable-next-line no-console
         console.log(
           `[Mongoose] ${collectionName}.${method} ${JSON.stringify(query)} ${
             doc ? JSON.stringify(doc) : ""

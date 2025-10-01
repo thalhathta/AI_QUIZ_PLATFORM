@@ -95,9 +95,9 @@ Respond as a JSON array ONLY, e.g.:
   let data;
   try {
     data = JSON.parse(jsonText);
-  } catch (err) {
+  } catch {
     // Last-ditch cleanup (remove leading/trailing junk)
-    const cleaned = jsonText.replace(/^[^\[{]+/, "").replace(/[^\]}]+$/, "");
+    const cleaned = jsonText.replace(/^[^[{]+/, "").replace(/[^}\]]+$/, "");
     data = JSON.parse(cleaned);
   }
 
