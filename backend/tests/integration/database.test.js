@@ -1,14 +1,29 @@
+import { jest } from "@jest/globals";
 import mongoose from "mongoose";
+import { MongoMemoryServer } from "mongodb-memory-server";
 import { connectDB } from "../../src/config/database.js";
 
+let mongoServer;
+
+jest.setTimeout(30000);
+
 beforeAll(async () => {
-  process.env.MONGODB_URI = "mongodb://127.0.0.1:27017/ai_quiz_integration_test";
+  mongoServer = await MongoMemoryServer.create({
+    instance: { ip: "127.0.0.1" },
+  });
+  process.env.MONGODB_URI = mongoServer.getUri();
   await connectDB();
 });
 
 afterAll(async () => {
-  await mongoose.connection.dropDatabase(); // clean test DB
-  await mongoose.connection.close();
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.connection.dropDatabase();
+    await mongoose.connection.close();
+  }
+
+  if (mongoServer) {
+    await mongoServer.stop();
+  }
 });
 
 describe("Database Integration", () => {
