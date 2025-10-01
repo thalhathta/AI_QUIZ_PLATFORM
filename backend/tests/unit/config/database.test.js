@@ -10,7 +10,7 @@ describe("connectDB", () => {
   beforeEach(() => {
     jest.resetModules();
     originalJestWorkerId = process.env.JEST_WORKER_ID;
-    delete process.env.JEST_WORKER_ID;
+    process.env.JEST_WORKER_ID = "";
     mockConnection = {
       on: jest.fn(),
       close: jest.fn(),
@@ -48,7 +48,7 @@ describe("connectDB", () => {
     const { connectDB } = await import("../../../src/config/database.js");
     const mongoose = (await import("mongoose")).default;
 
-    const dbInstance = await connectDB();
+    const dbInstance = await connectDB({ nodeEnv: "development" });
 
     expect(mockSet).toHaveBeenCalledWith("strictQuery", true);
     expect(mockSet).toHaveBeenCalledWith("debug", expect.any(Function));
@@ -57,7 +57,7 @@ describe("connectDB", () => {
     expect(processOnSpy).toHaveBeenCalledWith("SIGTERM", expect.any(Function));
     expect(dbInstance).toBe(mongoose.connection);
 
-    await connectDB();
+    await connectDB({ nodeEnv: "development" });
     expect(mockConnect).toHaveBeenCalledTimes(1);
   });
 
@@ -68,5 +68,27 @@ describe("connectDB", () => {
     const { connectDB } = await import("../../../src/config/database.js");
 
     await expect(connectDB()).rejects.toThrow(error);
+  });
+
+  it("disables debug logging when running under Jest", async () => {
+    jest.resetModules();
+    mockSet.mockClear();
+    mockConnect.mockClear();
+    process.env.JEST_WORKER_ID = "1";
+
+    jest.unstable_mockModule("mongoose", () => ({
+      default: {
+        connect: mockConnect,
+        connection: mockConnection,
+        set: mockSet,
+      },
+    }));
+
+    const { connectDB } = await import("../../../src/config/database.js");
+
+    await connectDB();
+
+    expect(mockSet).toHaveBeenCalledWith("strictQuery", true);
+    expect(mockSet).toHaveBeenCalledWith("debug", false);
   });
 });

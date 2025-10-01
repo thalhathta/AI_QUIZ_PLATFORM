@@ -9,6 +9,8 @@ export async function connectDB({ uri, dbName, nodeEnv } = {}) {
   const resolvedUri = uri ?? process.env.MONGODB_URI ?? DEFAULT_MONGODB_URI;
   const resolvedDbName = dbName ?? (process.env.MONGODB_DB_NAME || undefined);
   const resolvedNodeEnv = nodeEnv ?? process.env.NODE_ENV ?? "development";
+  const isTestEnvironment =
+    resolvedNodeEnv === "test" || Boolean(process.env.JEST_WORKER_ID);
 
   if (isConnected && mongoose.connection.readyState === 1) {
     return mongoose.connection;
@@ -16,7 +18,7 @@ export async function connectDB({ uri, dbName, nodeEnv } = {}) {
 
   try {
     mongoose.set("strictQuery", true);
-    if (resolvedNodeEnv !== "production") {
+    if (resolvedNodeEnv !== "production" && !isTestEnvironment) {
       // Helpful query logs during dev
       mongoose.set("debug", (collectionName, method, query, doc) => {
         console.log(
@@ -25,6 +27,8 @@ export async function connectDB({ uri, dbName, nodeEnv } = {}) {
           }`
         );
       });
+    } else {
+      mongoose.set("debug", false);
     }
 
     await mongoose.connect(resolvedUri, {
@@ -37,10 +41,16 @@ export async function connectDB({ uri, dbName, nodeEnv } = {}) {
     isConnected = true;
 
     const db = mongoose.connection;
-    db.on("connected", () => console.log("[DB] MongoDB connected"));
+    db.on("connected", () => {
+      if (!isTestEnvironment) {
+        console.log("[DB] MongoDB connected");
+      }
+    });
     db.on("error", (err) => console.error("[DB] MongoDB error:", err));
     db.on("disconnected", () => {
-      console.warn("[DB] MongoDB disconnected");
+      if (!isTestEnvironment) {
+        console.warn("[DB] MongoDB disconnected");
+      }
       isConnected = false;
     });
 

@@ -4,12 +4,41 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 
-const {
-  NODE_ENV = "development",
-  CORS_ORIGIN = "http://localhost:5173",
-  RATE_LIMIT_WINDOW_MS = "60000", // 1 minute
-  RATE_LIMIT_MAX = "100", // 100 req/min/IP
-} = process.env;
+const DEFAULT_RATE_LIMIT_WINDOW_MS = 60_000;
+const DEFAULT_RATE_LIMIT_MAX = 100;
+const DEFAULT_LOCALHOST_ORIGINS = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:4173",
+  "http://127.0.0.1:4173",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+];
+
+const NODE_ENV = process.env.NODE_ENV ?? "development";
+
+const parsePositiveInt = (value, fallback) => {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const rateLimitWindowMs = parsePositiveInt(
+  process.env.RATE_LIMIT_WINDOW_MS,
+  DEFAULT_RATE_LIMIT_WINDOW_MS
+);
+const rateLimitMax = parsePositiveInt(process.env.RATE_LIMIT_MAX, DEFAULT_RATE_LIMIT_MAX);
+
+const parseOrigins = (value) =>
+  String(value ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+const configuredOrigins = parseOrigins(process.env.CORS_ORIGIN);
+const allowedOriginList = configuredOrigins.length
+  ? Array.from(new Set(configuredOrigins))
+  : DEFAULT_LOCALHOST_ORIGINS;
+const allowAllOrigins = allowedOriginList.includes("*");
 
 export const app = express();
 
@@ -21,12 +50,15 @@ app.use(
 );
 
 // CORS
-const allowedOrigins = CORS_ORIGIN.split(",").map((s) => s.trim());
 app.use(
   cors({
     origin: (origin, cb) => {
       // Allow non-browser tools (no Origin) and listed origins
-      if (!origin || allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+      if (
+        !origin ||
+        allowAllOrigins ||
+        allowedOriginList.includes(origin)
+      ) {
         return cb(null, true);
       }
       return cb(new Error("Not allowed by CORS"));
@@ -42,8 +74,8 @@ app.use(express.urlencoded({ extended: false }));
 // Rate limiting (basic)
 app.use(
   rateLimit({
-    windowMs: Number(RATE_LIMIT_WINDOW_MS),
-    max: Number(RATE_LIMIT_MAX),
+    windowMs: rateLimitWindowMs,
+    max: rateLimitMax,
     standardHeaders: true,
     legacyHeaders: false,
   })
