@@ -1,0 +1,52 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./backend
+    container_name: ai-quiz-backend
+    restart: always
+    env_file:
+      - ./docker/.env
+    ports:
+      - "4000:4000"
+    depends_on:
+      - mongodb
+    networks:
+      - ai-quiz-net
+
+  mongodb:
+    image: mongo:6.0
+    container_name: ai-quiz-mongodb
+    restart: always
+    ports:
+      - "27018:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+      MONGO_INITDB_DATABASE: ai_quiz_platform
+    volumes:
+      - mongodb_data:/data/db
+      - ./docker/mongodb/init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - ai-quiz-net
+
+  # Placeholder for nginx load balancer (future use)
+  nginx:
+    image: nginx:latest
+    container_name: ai-quiz-nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+    networks:
+      - ai-quiz-net
+
+networks:
+  ai-quiz-net:
+    driver: bridge
+
+volumes:
+  mongodb_data:
