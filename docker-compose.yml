@@ -1,52 +1,48 @@
 version: "3.9"
 
 services:
-  backend:
-    build: ./backend
-    container_name: ai-quiz-backend
-    restart: always
-    env_file:
-      - ./docker/.env
+  user-service:
+    build: ./services/user-service
+    container_name: ai-quiz-user-service
     ports:
-      - "4000:4000"
+      - "3001:3001"
+    networks:
+      - ai-quiz-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 310s
+      retries: 3
+    restart: unless-stopped
+
+  quiz-service:
+    build: ./services/quiz-service
+    container_name: ai-quiz-quiz-service
+    ports:
+      - "3002:3002"
+    networks:
+      - ai-quiz-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 310s
+      retries: 3
+    restart: unless-stopped
+  
+  results-service:
+    build: ./services/results-service
+    container_name: ai-quiz-results-service
+    ports:
+      - "3003:3003"
+    networks:
+      - ai-quiz-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 310s
+      retries: 3
     depends_on:
-      - mongodb
-    networks:
-      - ai-quiz-net
-
-  mongodb:
-    image: mongo:6.0
-    container_name: ai-quiz-mongodb
-    restart: always
-    ports:
-      - "27018:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example
-      MONGO_INITDB_DATABASE: ai_quiz_platform
-    volumes:
-      - mongodb_data:/data/db
-      - ./docker/mongodb/init-scripts:/docker-entrypoint-initdb.d
-    networks:
-      - ai-quiz-net
-
-  # Placeholder for nginx load balancer (future use)
-  nginx:
-    image: nginx:latest
-    container_name: ai-quiz-nginx
-    restart: always
-    ports:
-      - "80:80"
-    volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - backend
-    networks:
-      - ai-quiz-net
-
+      - quiz-service
 networks:
   ai-quiz-net:
     driver: bridge
-
-volumes:
-  mongodb_data:
