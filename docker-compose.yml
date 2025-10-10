@@ -30,8 +30,8 @@ services:
     restart: unless-stopped
   
   results-service:
-    build: ./services/results-service
-    container_name: ai-quiz-results-service
+    build: ./services/result-service
+    container_name: ai-quiz-result-service
     ports:
       - "3003:3003"
     networks:
