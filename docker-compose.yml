@@ -3,7 +3,6 @@ version: "3.9"
 services:
   user-service:
     build: ./services/user-service
-    container_name: ai-quiz-user-service
     ports:
       - "3001:3001"
     networks:
@@ -17,7 +16,6 @@ services:
 
   quiz-service:
     build: ./services/quiz-service
-    container_name: ai-quiz-quiz-service
     ports:
       - "3002:3002"
     networks:
@@ -31,7 +29,6 @@ services:
   
   results-service:
     build: ./services/result-service
-    container_name: ai-quiz-result-service
     ports:
       - "3003:3003"
     networks:
